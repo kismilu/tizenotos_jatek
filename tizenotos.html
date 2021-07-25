@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script>
+        $(function(){
+            var N = 4; // sorok és oszlopok szám
+            var baseSize = 100; // egy csempe mérete
+            var innerPadding = 20; // a játéktér belső margója
+            var gameArea = $('#gameArea'); // a játéktér
+            var emptyTile; // üres mező
+            var allBorderWidth = 4; // egy csempe szélességét növelő szegélyek összesen
+
+            // tömb keverése
+            function shuffle(inputArray){
+                for (var i=0; i<N*N-1; i++){
+                    // random tömbelem kiválasztása
+                    var index = i + Math.floor(Math.random()*(inputArray.length-i));
+                    // felcserélés az aktuális indexű elemmel
+                    var tmp = inputArray[i];
+                    inputArray[i] = inputArray[index];
+                    inputArray[index] = tmp;
+                }
+                return inputArray;
+            }
+
+            // sorrend tesztelése, nyerés
+            function testWin(){
+                // az üres mező a tábla végén legyen
+                if (emptyTile.x != N-1 || emptyTile.y != N-1) {
+                    return false;
+                }
+                var allInOrder = true;
+                var lastIndex = -1;
+                // minden csempe nagyobb értékű az előzőnél, ha sorban vannak
+                gameArea.find('.tile').each(function(){
+                    var tileNumber = parseInt($(this).attr('tileNumber'));
+                    if (lastIndex > tileNumber) {
+                        allInOrder = false; // mégsincs sorban
+                    }
+                    lastIndex = tileNumber;
+                });
+                return allInOrder;
+            }
+
+            // csempe kattintás eseménykezelője
+            function tileClick(){
+                // kattintott csempe x és y indexei [0..N-1]
+                var iX = $(this).attr('iX');
+                var iY = $(this).attr('iY');
+                // felcserélhető, ha pontosan 1 távolságra van az üres csempétől
+                var canSwap = Math.abs(iX - emptyTile.x) + Math.abs(iY - emptyTile.y) == 1;
+                if (canSwap){
+                    // animált eltolás
+                    $(this).animate({
+                        top: innerPadding + emptyTile.y*baseSize+"px",
+                        left: innerPadding + emptyTile.x*baseSize+"px"
+                    });
+                    // attribútumok cseréje
+                    $(this).attr('iX', emptyTile.x);
+                    $(this).attr('iY', emptyTile.y);
+                    emptyTile.x = iX;
+                    emptyTile.y = iY;
+                }
+                var win = testWin();
+                if (win){
+                    // eseménykezelők eltávolítása, ha nyertünk
+                    gameArea.find('.tile').off('click');
+                    $('#win').show();
+                }
+            }
+
+            // új játék indítása
+            function newGame(){
+                $('#win').hide();
+                // tömb feltöltése, majd keverése
+                var order = [];
+                for (var i=0; i<N*N-1; i++){
+                    order.push(i+1);
+                }
+                shuffle(order);
+                // az üres mező indexei
+                emptyTile = {x: N-1, y: N-1};
+                // játéktér ürítése
+                gameArea.html("");
+                // játéktér feltöltése
+                for (var i=0; i<N*N-1; i++){
+                    // sor és oszlopindex meghatározás i alapján
+                    var indexY = Math.floor(i/N);
+                    var indexX = i%N;
+                    // új csempe
+                    var tile = $('<div class="tile"></div>');
+                    tile.attr('iX', indexX);
+                    tile.attr('iY', indexY);
+                    tile.attr('tileNumber', order[i]);
+                    // hozzáadás a játéktérhez
+                    gameArea.append(tile);
+                    // a csempe mérete és pozíciója
+                    tile.css({
+                        top: innerPadding+indexY*baseSize+"px",
+                        left: innerPadding+indexX*baseSize+"px",
+                        width: baseSize-allBorderWidth+"px",
+                        height: baseSize-allBorderWidth+"px",
+                        'line-height': baseSize-allBorderWidth+"px",
+                        'font-size': baseSize/2+"px"
+                    }).text(order[i]);
+                    // eseménykezelő hozzárendelése
+                    tile.on('click', tileClick);
+                }
+            }
+            // játéktér méretezése (benne csak absolute div van, ezért nem rugalmas)
+            gameArea.css({
+                width: baseSize*N+"px",
+                height: baseSize*N+"px"
+            });
+            // új játék gomb eseménykezelője
+            $("#newGame").on('click', newGame);
+            // új játék indítása betöltődéskor
+            newGame();
+        });
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+        }
+        .tile {
+            position: absolute;
+            border-width: 1px;
+            border-style: solid;
+            background: #ffe99e;
+            border-color: black;
+            text-align: center;
+            color: black;
+            cursor: pointer;
+        }
+        .tile:hover {
+            background-color: #ffa12a;
+        }
+        #gameArea {
+            position: relative;
+            padding: 20px;
+            background-color: #1c5980;
+            border: solid black 3px;
+        }
+    </style>
+    <title>Tizenötös játék</title>
+</head>
+<body>
+    <div id="gameArea"></div>
+    <p id="win">Gratulálok, nyertél.</p>
+    <button id="newGame">Új játék</button>
+</body>
+</html>
